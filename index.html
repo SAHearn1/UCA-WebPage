@@ -4,6 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Urban Christian Academy | The RootWork Framework — From Garden to Growth</title>
+<meta name="description" content="Urban Christian Academy's RootWork Framework integrates garden-based learning, therapeutic support, culinary arts, and STEAM innovation for Pre-K through 12th grade in Savannah, GA.">
+<link rel="canonical" href="https://uca-web-page.vercel.app">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://uca-web-page.vercel.app">
+<meta property="og:title" content="Urban Christian Academy | The RootWork Framework">
+<meta property="og:description" content="From Garden to Growth — a transformative approach to education integrating garden-based learning, therapeutic support, culinary arts, and STEAM innovation.">
+<meta property="og:site_name" content="Urban Christian Academy">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Urban Christian Academy | The RootWork Framework">
+<meta name="twitter:description" content="From Garden to Growth — garden-based learning, therapeutic support, culinary arts, and STEAM for Pre-K–12 in Savannah, GA.">
+
+<!-- Favicon -->
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
@@ -1021,9 +1039,48 @@
     transition: all 0.3s;
   }
 
+  /* ====== MOBILE NAV OPEN STATE ====== */
+  .nav-links.open {
+    display: flex;
+  }
+
+  /* Hamburger → X animation */
+  .nav-toggle.active span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+  }
+  .nav-toggle.active span:nth-child(2) {
+    opacity: 0;
+  }
+  .nav-toggle.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
+  }
+
   /* ====== RESPONSIVE ====== */
   @media (max-width: 900px) {
-    .nav-links { display: none; }
+    .nav-links {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0; right: 0;
+      flex-direction: column;
+      background: rgba(27, 58, 32, 0.97);
+      backdrop-filter: blur(12px);
+      padding: 1rem 2rem 1.5rem;
+      gap: 0;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    }
+    .nav-links.open { display: flex; }
+    .nav-links li { border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .nav-links li:last-child { border-bottom: none; }
+    .nav-links a {
+      display: block;
+      padding: 0.85rem 0;
+      font-size: 0.95rem;
+    }
+    .nav-cta {
+      margin-top: 0.5rem;
+      text-align: center;
+    }
     .nav-toggle { display: block; }
     .hero-content { padding: 7rem 1.5rem 6rem; }
     .hero-stats { gap: 1.5rem; padding: 1rem 1.5rem; flex-wrap: wrap; }
@@ -1049,7 +1106,7 @@
     <div class="nav-brand-icon">UCA</div>
     <span class="nav-brand-text">Urban Christian Academy</span>
   </a>
-  <ul class="nav-links">
+  <ul class="nav-links" id="nav-links">
     <li><a href="#about">The Framework</a></li>
     <li><a href="#programs">Programs</a></li>
     <li><a href="#summer">Summer Camp</a></li>
@@ -1057,7 +1114,7 @@
     <li><a href="#services">Services</a></li>
     <li><a href="#enroll" class="nav-cta">Enroll Now</a></li>
   </ul>
-  <button class="nav-toggle" aria-label="Menu">
+  <button class="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="nav-links">
     <span></span><span></span><span></span>
   </button>
 </nav>
@@ -1437,6 +1494,24 @@
   const nav = document.getElementById('nav');
   window.addEventListener('scroll', () => {
     nav.classList.toggle('scrolled', window.scrollY > 60);
+  });
+
+  // Mobile nav toggle
+  const navToggle = document.querySelector('.nav-toggle');
+  const navLinks = document.getElementById('nav-links');
+  navToggle.addEventListener('click', () => {
+    const isOpen = navLinks.classList.toggle('open');
+    navToggle.classList.toggle('active', isOpen);
+    navToggle.setAttribute('aria-expanded', isOpen);
+  });
+
+  // Close mobile nav when a link is clicked
+  navLinks.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      navLinks.classList.remove('open');
+      navToggle.classList.remove('active');
+      navToggle.setAttribute('aria-expanded', 'false');
+    });
   });
 
   // Scroll reveal

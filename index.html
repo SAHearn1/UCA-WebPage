@@ -50,6 +50,33 @@
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  /* ====== FOCUS STYLES ====== */
+  :focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* Remove default outline for mouse users */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Override for form inputs — use inset style */
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--gold);
+  }
+
+  /* Ensure buttons get a visible ring */
+  .btn-primary:focus-visible,
+  .btn-secondary:focus-visible {
+    outline: 2px solid var(--gold-light);
+    outline-offset: 3px;
+  }
+
   html { scroll-behavior: smooth; }
 
   body {
@@ -69,6 +96,26 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
     pointer-events: none;
     z-index: 9999;
+  }
+
+  /* ====== SKIP LINK ====== */
+  .skip-link {
+    position: absolute;
+    top: -100%;
+    left: 1rem;
+    z-index: 10000;
+    background: var(--gold);
+    color: var(--white);
+    padding: 0.75rem 1.5rem;
+    border-radius: 0 0 8px 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: top 0.2s;
+  }
+
+  .skip-link:focus {
+    top: 0;
   }
 
   /* ====== NAVIGATION ====== */
@@ -357,7 +404,7 @@
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: rgba(255,255,255,0.6);
+    color: rgba(255,255,255,0.78);
     margin-top: 0.2rem;
   }
 
@@ -706,7 +753,7 @@
 
   .summer-detail-label {
     font-size: 0.78rem;
-    color: rgba(255,255,255,0.6);
+    color: rgba(255,255,255,0.78);
     font-weight: 500;
     letter-spacing: 0.03em;
   }
@@ -720,7 +767,7 @@
 
   .summer-cta-note {
     font-size: 0.85rem;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.72);
     font-style: italic;
   }
 
@@ -968,7 +1015,7 @@
   }
 
   .cta-contact p {
-    color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.72);
     font-size: 0.85rem;
     margin-bottom: 0.3rem;
   }
@@ -1018,7 +1065,7 @@
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.6);
+    color: rgba(255,255,255,0.78);
     margin-bottom: 0.4rem;
   }
 
@@ -1038,7 +1085,7 @@
 
   .form-group input::placeholder,
   .form-group textarea::placeholder {
-    color: rgba(255,255,255,0.3);
+    color: rgba(255,255,255,0.45);
   }
 
   .form-group input:focus,
@@ -1074,7 +1121,7 @@
 
   .form-note {
     font-size: 0.75rem;
-    color: rgba(255,255,255,0.35);
+    color: rgba(255,255,255,0.58);
     margin-top: 0.75rem;
     text-align: center;
   }
@@ -1106,7 +1153,7 @@
   }
 
   .form-success p {
-    color: rgba(255,255,255,0.6);
+    color: rgba(255,255,255,0.78);
     font-size: 0.9rem;
   }
 
@@ -1143,12 +1190,12 @@
 
   .footer-text {
     font-size: 0.78rem;
-    color: rgba(255,255,255,0.4);
+    color: rgba(255,255,255,0.65);
   }
 
   .footer-right {
     font-size: 0.75rem;
-    color: rgba(255,255,255,0.3);
+    color: rgba(255,255,255,0.6);
     letter-spacing: 0.03em;
   }
 
@@ -1248,9 +1295,10 @@
 </style>
 </head>
 <body>
+<a href="#main-content" class="skip-link">Skip to content</a>
 
 <!-- ====== NAVIGATION ====== -->
-<nav class="nav" id="nav">
+<nav class="nav" id="nav" role="navigation" aria-label="Main navigation">
   <a href="#" class="nav-brand">
     <div class="nav-brand-icon">UCA</div>
     <span class="nav-brand-text">Urban Christian Academy</span>
@@ -1275,7 +1323,8 @@
 </div>
 
 <!-- ====== HERO ====== -->
-<section class="hero">
+<main>
+<section class="hero" id="main-content">
   <div class="hero-content">
     <div class="hero-eyebrow">
       <div class="hero-eyebrow-dot"></div>
@@ -1314,7 +1363,7 @@
 </section>
 
 <!-- ====== WHAT IS ROOTWORK ====== -->
-<section class="section about" id="about">
+<section class="section about" id="about" aria-label="The RootWork Framework">
   <div class="section-container">
     <div class="about-grid">
       <div>
@@ -1357,9 +1406,9 @@
         </div>
       </div>
 
-      <div class="about-visual reveal reveal-delay-2">
+      <div class="about-visual reveal reveal-delay-2" role="img" aria-label="RootWork Framework cycle diagram showing four pillars — Garden, Science, Culinary, and Therapeutic Support — surrounding the whole child">
         <div class="about-visual-inner">
-          <div class="cycle-ring">
+          <div class="cycle-ring" aria-hidden="true">
             <div class="cycle-node">&#127793;</div>
             <div class="cycle-node">&#128300;</div>
             <div class="cycle-node">&#127859;</div>
@@ -1375,7 +1424,7 @@
 </section>
 
 <!-- ====== PROGRAMS ====== -->
-<section class="section programs" id="programs">
+<section class="section programs" id="programs" aria-label="Programs">
   <div class="section-container">
     <span class="section-label reveal">What We Offer</span>
     <h2 class="section-title reveal reveal-delay-1">Programming that never <em>stops growing</em></h2>
@@ -1434,7 +1483,7 @@
 </section>
 
 <!-- ====== SUMMER CAMP FEATURE ====== -->
-<section class="section summer" id="summer">
+<section class="section summer" id="summer" aria-label="Summer Camp 2026">
   <div class="section-container summer-content">
     <span class="section-label">Summer Camp 2026</span>
     <h2 class="section-title reveal">The summer that <em>plants the seed</em></h2>
@@ -1471,7 +1520,7 @@
 </section>
 
 <!-- ====== SCHOLARSHIPS ====== -->
-<section class="section scholarships" id="scholarships">
+<section class="section scholarships" id="scholarships" aria-label="Scholarships">
   <div class="section-container">
     <span class="section-label reveal">Making It Possible</span>
     <h2 class="section-title reveal reveal-delay-1">Three scholarship pathways, <em>one mission</em></h2>
@@ -1512,7 +1561,7 @@
 </section>
 
 <!-- ====== ADD-ON SERVICES ====== -->
-<section class="section services" id="services">
+<section class="section services" id="services" aria-label="Support Services">
   <div class="section-container">
     <div class="services-layout">
       <div class="services-sticky">
@@ -1573,7 +1622,7 @@
 </section>
 
 <!-- ====== TRUST / CREDENTIALS ====== -->
-<section class="section trust" id="trust">
+<section class="section trust" id="trust" aria-label="Why Families Trust Us">
   <div class="section-container">
     <div style="text-align: center; max-width: 600px; margin: 0 auto 3rem;">
       <span class="section-label reveal">Why Families Trust Us</span>
@@ -1616,7 +1665,7 @@
 </section>
 
 <!-- ====== ENROLL / INQUIRY FORM ====== -->
-<section class="cta-section" id="enroll">
+<section class="cta-section" id="enroll" aria-label="Enrollment Inquiry">
   <div class="cta-content">
     <div class="enroll-layout">
       <div class="enroll-info">
@@ -1637,13 +1686,13 @@
             &nbsp;&middot;&nbsp;
             <a href="https://fg2g-rwfw.com" target="_blank" rel="noopener noreferrer">fg2g-rwfw.com</a>
           </p>
-          <p style="margin-top: 1rem; font-size: 0.78rem; color: rgba(255,255,255,0.35);">
+          <p style="margin-top: 1rem; font-size: 0.78rem; color: rgba(255,255,255,0.58);">
             Urban Christian Academy &middot; 4560 ACL Boulevard, Savannah, Georgia 31405
           </p>
         </div>
       </div>
       <div class="reveal reveal-delay-2">
-        <form class="enroll-form" id="enroll-form" action="https://formsubmit.co/shawn.hearn@rootworkframework.org" method="POST">
+        <form class="enroll-form" id="enroll-form" aria-label="Enrollment inquiry form" action="https://formsubmit.co/shawn.hearn@rootworkframework.org" method="POST">
           <!-- FormSubmit config -->
           <input type="hidden" name="_subject" value="New Enrollment Inquiry — UCA RootWork Framework">
           <input type="hidden" name="_captcha" value="true">
@@ -1706,9 +1755,10 @@
     </div>
   </div>
 </section>
+</main>
 
 <!-- ====== FOOTER ====== -->
-<footer class="footer">
+<footer class="footer" role="contentinfo">
   <div class="footer-left">
     <div class="footer-logo">UCA</div>
     <span class="footer-text">Urban Christian Academy &times; CECS &middot; The RootWork Framework</span>

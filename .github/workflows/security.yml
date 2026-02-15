@@ -1,0 +1,519 @@
+name: Security Scan — End-to-End
+
+on:
+  schedule:
+    # Every 12 hours at 06:00 and 18:00 UTC
+    - cron: '0 6,18 * * *'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SITE_URL: https://uca-web-page.vercel.app
+  SITE_HOST: uca-web-page.vercel.app
+
+jobs:
+  headers-audit:
+    name: HTTP Security Headers Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch and analyze security headers
+        run: |
+          echo "=== HTTP Response Headers ==="
+          curl -sI "$SITE_URL" | tee /tmp/headers.txt
+          echo ""
+          echo "=== Security Headers Analysis ==="
+
+          check_header() {
+            local header="$1"
+            local expected="$2"
+            local value
+            value=$(grep -i "^${header}:" /tmp/headers.txt | head -1 | sed 's/^[^:]*: //' | tr -d '\r')
+            if [ -z "$value" ]; then
+              echo "FAIL: ${header} — MISSING"
+              return 1
+            elif [ -n "$expected" ] && [ "$value" != "$expected" ]; then
+              echo "WARN: ${header} — Found '${value}', expected '${expected}'"
+              return 0
+            else
+              echo "PASS: ${header} — ${value}"
+              return 0
+            fi
+          }
+
+          SCORE=0
+          TOTAL=0
+          MISSING=""
+
+          for h in \
+            "X-Content-Type-Options:nosniff" \
+            "X-Frame-Options:DENY" \
+            "X-XSS-Protection:1; mode=block" \
+            "Referrer-Policy:strict-origin-when-cross-origin" \
+            "Permissions-Policy:" \
+            "Content-Security-Policy:" \
+            "Strict-Transport-Security:" \
+            "Cross-Origin-Embedder-Policy:" \
+            "Cross-Origin-Opener-Policy:" \
+            "Cross-Origin-Resource-Policy:"; do
+            header_name="${h%%:*}"
+            header_expected="${h#*:}"
+            TOTAL=$((TOTAL + 1))
+            if check_header "$header_name" "$header_expected"; then
+              SCORE=$((SCORE + 1))
+            else
+              MISSING="${MISSING}\n  - ${header_name}"
+            fi
+          done
+
+          echo ""
+          echo "=== Score: ${SCORE}/${TOTAL} ==="
+          if [ -n "$MISSING" ]; then
+            printf "Missing headers:%b\n" "$MISSING"
+          fi
+
+          echo ""
+          echo "=== Information Disclosure Check ==="
+          for bad_header in "Server" "X-Powered-By"; do
+            val=$(grep -i "^${bad_header}:" /tmp/headers.txt | head -1)
+            if [ -n "$val" ]; then
+              echo "WARN: ${bad_header} header is exposed — consider removing: ${val}"
+            else
+              echo "PASS: ${bad_header} — not exposed"
+            fi
+          done
+        continue-on-error: true
+
+      - name: Upload headers report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: headers-report
+          path: /tmp/headers.txt
+          retention-days: 30
+
+  ssl-check:
+    name: SSL/TLS Certificate Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check SSL certificate and TLS configuration
+        run: |
+          REPORT="/tmp/ssl-report.txt"
+
+          echo "=== SSL/TLS Certificate Report ===" | tee "$REPORT"
+          echo "Target: ${SITE_HOST}" | tee -a "$REPORT"
+          echo "Date: $(date -u)" | tee -a "$REPORT"
+          echo "" | tee -a "$REPORT"
+
+          # Certificate details
+          echo "=== Certificate Details ===" | tee -a "$REPORT"
+          echo | openssl s_client -servername "$SITE_HOST" -connect "${SITE_HOST}:443" 2>/dev/null | \
+            openssl x509 -noout -subject -issuer -dates -serial 2>/dev/null | tee -a "$REPORT"
+
+          echo "" | tee -a "$REPORT"
+
+          # Expiry check
+          echo "=== Expiry Check ===" | tee -a "$REPORT"
+          EXPIRY_DATE=$(echo | openssl s_client -servername "$SITE_HOST" -connect "${SITE_HOST}:443" 2>/dev/null | \
+            openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
+
+          if [ -n "$EXPIRY_DATE" ]; then
+            EXPIRY_EPOCH=$(date -d "$EXPIRY_DATE" +%s 2>/dev/null)
+            NOW_EPOCH=$(date +%s)
+            DAYS_LEFT=$(( (EXPIRY_EPOCH - NOW_EPOCH) / 86400 ))
+
+            if [ "$DAYS_LEFT" -lt 0 ]; then
+              echo "CRITICAL: Certificate has EXPIRED ($EXPIRY_DATE)" | tee -a "$REPORT"
+            elif [ "$DAYS_LEFT" -lt 7 ]; then
+              echo "CRITICAL: Certificate expires in ${DAYS_LEFT} days ($EXPIRY_DATE)" | tee -a "$REPORT"
+            elif [ "$DAYS_LEFT" -lt 30 ]; then
+              echo "WARNING: Certificate expires in ${DAYS_LEFT} days ($EXPIRY_DATE)" | tee -a "$REPORT"
+            else
+              echo "PASS: Certificate valid for ${DAYS_LEFT} more days (expires $EXPIRY_DATE)" | tee -a "$REPORT"
+            fi
+          else
+            echo "ERROR: Could not retrieve certificate expiry date" | tee -a "$REPORT"
+          fi
+
+          echo "" | tee -a "$REPORT"
+
+          # TLS version check
+          echo "=== TLS Version Check ===" | tee -a "$REPORT"
+          for ver in tls1 tls1_1 tls1_2 tls1_3; do
+            if echo | openssl s_client -"$ver" -servername "$SITE_HOST" -connect "${SITE_HOST}:443" 2>/dev/null | \
+              grep -q "Cipher is"; then
+              if [ "$ver" = "tls1" ] || [ "$ver" = "tls1_1" ]; then
+                echo "WARN: ${ver} is SUPPORTED (should be disabled)" | tee -a "$REPORT"
+              else
+                echo "PASS: ${ver} is supported" | tee -a "$REPORT"
+              fi
+            else
+              if [ "$ver" = "tls1" ] || [ "$ver" = "tls1_1" ]; then
+                echo "PASS: ${ver} is disabled (good)" | tee -a "$REPORT"
+              else
+                echo "INFO: ${ver} is not supported" | tee -a "$REPORT"
+              fi
+            fi
+          done
+
+          echo "" | tee -a "$REPORT"
+
+          # Certificate chain
+          echo "=== Certificate Chain ===" | tee -a "$REPORT"
+          echo | openssl s_client -servername "$SITE_HOST" -connect "${SITE_HOST}:443" -showcerts 2>/dev/null | \
+            grep -E "depth=|subject=|issuer=" | tee -a "$REPORT"
+
+          echo "" | tee -a "$REPORT"
+          VERIFY_RESULT=$(echo | openssl s_client -servername "$SITE_HOST" -connect "${SITE_HOST}:443" 2>/dev/null | \
+            grep "Verify return code")
+          echo "Chain verification: $VERIFY_RESULT" | tee -a "$REPORT"
+        continue-on-error: true
+
+      - name: Upload SSL report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ssl-report
+          path: /tmp/ssl-report.txt
+          retention-days: 30
+
+  zap-scan:
+    name: OWASP ZAP Baseline Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: 'https://uca-web-page.vercel.app'
+          rules_file_name: ''
+          cmd_options: '-a'
+        continue-on-error: true
+
+      - name: Upload ZAP report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-report
+          path: report_html.html
+          retention-days: 30
+
+  content-integrity:
+    name: Content & Dependency Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check external resource availability
+        run: |
+          REPORT="/tmp/integrity-report.txt"
+          echo "=== External Resource Availability ===" | tee "$REPORT"
+          echo "Date: $(date -u)" | tee -a "$REPORT"
+          echo "" | tee -a "$REPORT"
+
+          FAIL_COUNT=0
+
+          check_url() {
+            local url="$1"
+            local label="$2"
+            local status
+            status=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 15 "$url")
+            if [ "$status" -ge 200 ] && [ "$status" -lt 400 ]; then
+              echo "PASS [$status]: ${label}" | tee -a "$REPORT"
+            else
+              echo "FAIL [$status]: ${label} — ${url}" | tee -a "$REPORT"
+              FAIL_COUNT=$((FAIL_COUNT + 1))
+            fi
+          }
+
+          # Google Fonts
+          check_url "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" "Google Fonts CSS"
+
+          # Unsplash images (all 7)
+          check_url "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80" "Unsplash: students collaborating"
+          check_url "https://images.unsplash.com/photo-1588075592446-265fd1e6e76f?w=600&q=80" "Unsplash: child planting"
+          check_url "https://images.unsplash.com/photo-1577896851231-70ef18881754?w=600&q=80" "Unsplash: STEAM activity"
+          check_url "https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=800&q=80" "Unsplash: garden sunlight"
+          check_url "https://images.unsplash.com/photo-1529390079861-591de354faf5?w=600&q=80" "Unsplash: garden soil"
+          check_url "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1920&q=80" "Unsplash: hero background"
+          check_url "https://images.unsplash.com/photo-1592150621744-aca64f48394a?w=800&q=80" "Unsplash: about visual"
+
+          # FormSubmit.co
+          check_url "https://formsubmit.co/" "FormSubmit.co homepage"
+
+          # Vercel Analytics
+          check_url "${SITE_URL}/_vercel/insights/script.js" "Vercel Analytics script"
+
+          echo "" | tee -a "$REPORT"
+          echo "=== Resource Check Summary: ${FAIL_COUNT} failure(s) ===" | tee -a "$REPORT"
+        continue-on-error: true
+
+      - name: Check for injected scripts or iframes
+        run: |
+          REPORT="/tmp/injection-report.txt"
+          echo "=== Injection Detection ===" | tee "$REPORT"
+
+          curl -sL "$SITE_URL" -o /tmp/live-page.html
+
+          # Count script tags (expected: 4 — JSON-LD x2, inline JS x1, Vercel analytics x1)
+          SCRIPT_COUNT=$(grep -oc '<script' /tmp/live-page.html || echo "0")
+          echo "Script tags found: ${SCRIPT_COUNT}" | tee -a "$REPORT"
+          if [ "$SCRIPT_COUNT" -gt 4 ]; then
+            echo "WARNING: More script tags than expected (expected 4, found ${SCRIPT_COUNT})" | tee -a "$REPORT"
+          else
+            echo "PASS: Script tag count within expected range" | tee -a "$REPORT"
+          fi
+
+          # Check for iframes (should be zero)
+          IFRAME_COUNT=$(grep -oc '<iframe' /tmp/live-page.html || echo "0")
+          echo "Iframe tags found: ${IFRAME_COUNT}" | tee -a "$REPORT"
+          if [ "$IFRAME_COUNT" -gt 0 ]; then
+            echo "WARNING: Unexpected iframe(s) detected" | tee -a "$REPORT"
+            grep -in '<iframe' /tmp/live-page.html | tee -a "$REPORT"
+          else
+            echo "PASS: No iframes detected" | tee -a "$REPORT"
+          fi
+
+          echo "" | tee -a "$REPORT"
+
+          # External domain audit
+          echo "=== External Domains Referenced ===" | tee -a "$REPORT"
+          grep -oP 'https?://[a-zA-Z0-9._-]+\.[a-zA-Z]{2,}' /tmp/live-page.html | \
+            sed 's|https\?://||' | cut -d/ -f1 | sort -u | tee -a "$REPORT"
+
+          DOMAIN_COUNT=$(grep -oP 'https?://[a-zA-Z0-9._-]+\.[a-zA-Z]{2,}' /tmp/live-page.html | \
+            sed 's|https\?://||' | cut -d/ -f1 | sort -u | wc -l)
+          echo "" | tee -a "$REPORT"
+          echo "Total unique external domains: ${DOMAIN_COUNT}" | tee -a "$REPORT"
+
+          # Known allowed domains
+          KNOWN_DOMAINS="fonts.googleapis.com fonts.gstatic.com images.unsplash.com formsubmit.co uca-web-page.vercel.app sa-hearn1-uca-web-page.vercel.app schema.org gadoe.org mygeorgiapromise.org www.goalscholarship.org fg2g-rwfw.com"
+
+          echo "" | tee -a "$REPORT"
+          echo "=== Unknown Domain Check ===" | tee -a "$REPORT"
+          UNKNOWN=0
+          for domain in $(grep -oP 'https?://[a-zA-Z0-9._-]+\.[a-zA-Z]{2,}' /tmp/live-page.html | \
+            sed 's|https\?://||' | cut -d/ -f1 | sort -u); do
+            if ! echo "$KNOWN_DOMAINS" | grep -qw "$domain"; then
+              echo "NEW DOMAIN: ${domain}" | tee -a "$REPORT"
+              UNKNOWN=$((UNKNOWN + 1))
+            fi
+          done
+          if [ "$UNKNOWN" -eq 0 ]; then
+            echo "PASS: No unknown domains detected" | tee -a "$REPORT"
+          else
+            echo "WARNING: ${UNKNOWN} unknown domain(s) found" | tee -a "$REPORT"
+          fi
+        continue-on-error: true
+
+      - name: Content hash for defacement detection
+        run: |
+          REPORT="/tmp/hash-report.txt"
+          echo "=== Content Hash (Defacement Detection) ===" | tee "$REPORT"
+
+          curl -sL "$SITE_URL" -o /tmp/live-check.html
+
+          sha256sum /tmp/live-check.html | tee -a "$REPORT"
+
+          echo "" | tee -a "$REPORT"
+          echo "=== Key Content Markers ===" | tee -a "$REPORT"
+
+          for marker in \
+            "Urban Christian Academy" \
+            "RootWork Framework" \
+            "From Garden" \
+            "Dr. Shawn A. Hearn" \
+            "4560 ACL Boulevard"; do
+            if grep -q "$marker" /tmp/live-check.html; then
+              echo "PASS: Found '${marker}'" | tee -a "$REPORT"
+            else
+              echo "FAIL: Missing '${marker}' — possible defacement" | tee -a "$REPORT"
+            fi
+          done
+        continue-on-error: true
+
+      - name: Upload integrity reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integrity-reports
+          path: |
+            /tmp/integrity-report.txt
+            /tmp/injection-report.txt
+            /tmp/hash-report.txt
+          retention-days: 30
+
+  link-health:
+    name: Link Health & Availability
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check site availability and response time
+        run: |
+          REPORT="/tmp/availability-report.txt"
+          echo "=== Site Availability ===" | tee "$REPORT"
+
+          RESPONSE=$(curl -sL -o /dev/null -w "HTTP %{http_code} | Time: %{time_total}s | Size: %{size_download} bytes" \
+            --max-time 30 "$SITE_URL")
+          echo "Main page: ${RESPONSE}" | tee -a "$REPORT"
+
+          RESPONSE_TIME=$(curl -sL -o /dev/null -w "%{time_total}" --max-time 30 "$SITE_URL")
+          if (( $(echo "$RESPONSE_TIME > 5.0" | bc -l) )); then
+            echo "WARNING: Response time ${RESPONSE_TIME}s exceeds 5s threshold" | tee -a "$REPORT"
+          else
+            echo "PASS: Response time ${RESPONSE_TIME}s is within threshold" | tee -a "$REPORT"
+          fi
+        continue-on-error: true
+
+      - name: Link Check with Lychee
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --verbose
+            --no-progress
+            --accept 200,204,301,302,307,403
+            --timeout 30
+            --max-retries 3
+            --exclude-mail
+            index.html
+            styles.css
+          output: /tmp/lychee-report.md
+          fail: false
+
+      - name: Upload link reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: link-reports
+          path: |
+            /tmp/availability-report.txt
+            /tmp/lychee-report.md
+          retention-days: 30
+
+  static-analysis:
+    name: Static Code Analysis
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for inline event handlers (XSS vectors)
+        run: |
+          REPORT="/tmp/static-analysis-report.txt"
+          echo "=== Inline Event Handler Check ===" | tee "$REPORT"
+          echo "" | tee -a "$REPORT"
+
+          HANDLERS=$(grep -inE '\s(on(click|error|load|mouseover|mouseout|focus|blur|submit|keydown|keyup|change|input))\s*=' index.html || true)
+          if [ -n "$HANDLERS" ]; then
+            echo "WARNING: Inline event handlers found:" | tee -a "$REPORT"
+            echo "$HANDLERS" | tee -a "$REPORT"
+            echo "" | tee -a "$REPORT"
+            HANDLER_COUNT=$(echo "$HANDLERS" | wc -l)
+            echo "Total: ${HANDLER_COUNT} inline handler(s)" | tee -a "$REPORT"
+            echo "RECOMMENDATION: Move to addEventListener() for CSP compliance" | tee -a "$REPORT"
+          else
+            echo "PASS: No inline event handlers found" | tee -a "$REPORT"
+          fi
+        continue-on-error: true
+
+      - name: Check for mixed content
+        run: |
+          REPORT="/tmp/mixed-content-report.txt"
+          echo "=== Mixed Content Check ===" | tee "$REPORT"
+          echo "" | tee -a "$REPORT"
+
+          MIXED=$(grep -inE '(src|href|action)\s*=\s*["\x27]http://' index.html styles.css | \
+            grep -v 'schema.org' || true)
+          if [ -n "$MIXED" ]; then
+            echo "WARNING: Mixed content references found:" | tee -a "$REPORT"
+            echo "$MIXED" | tee -a "$REPORT"
+          else
+            echo "PASS: No mixed content detected" | tee -a "$REPORT"
+          fi
+
+          MIXED_CSS=$(grep -inE "url\(['\"]?http://" styles.css || true)
+          if [ -n "$MIXED_CSS" ]; then
+            echo "WARNING: Mixed content in CSS:" | tee -a "$REPORT"
+            echo "$MIXED_CSS" | tee -a "$REPORT"
+          else
+            echo "PASS: No mixed content in CSS" | tee -a "$REPORT"
+          fi
+        continue-on-error: true
+
+      - name: Scan for secrets and API keys
+        run: |
+          REPORT="/tmp/secrets-report.txt"
+          echo "=== Secrets & API Key Scan ===" | tee "$REPORT"
+          echo "" | tee -a "$REPORT"
+
+          FOUND=0
+          for pattern in \
+            'AKIA[0-9A-Z]{16}' \
+            'sk_live_[a-zA-Z0-9]+' \
+            'sk_test_[a-zA-Z0-9]+' \
+            'ghp_[a-zA-Z0-9]{36}' \
+            'gho_[a-zA-Z0-9]{36}' \
+            'xoxb-[0-9]+-[a-zA-Z0-9]+' \
+            'AIza[0-9A-Za-z_-]{35}' \
+            'ya29\.[a-zA-Z0-9_-]+' \
+            'PRIVATE.KEY' \
+            'password\s*[:=]' \
+            'api[_-]?key\s*[:=]' \
+            'secret\s*[:=]'; do
+            MATCHES=$(grep -rniE "$pattern" --include="*.html" --include="*.css" --include="*.js" --include="*.json" . 2>/dev/null | \
+              grep -v '.git/' | grep -v 'node_modules/' || true)
+            if [ -n "$MATCHES" ]; then
+              echo "WARNING: Pattern '${pattern}' matched:" | tee -a "$REPORT"
+              echo "$MATCHES" | tee -a "$REPORT"
+              FOUND=$((FOUND + 1))
+            fi
+          done
+
+          if [ "$FOUND" -eq 0 ]; then
+            echo "PASS: No secrets or API keys detected" | tee -a "$REPORT"
+          fi
+        continue-on-error: true
+
+      - name: Check .gitignore coverage
+        run: |
+          REPORT="/tmp/gitignore-report.txt"
+          echo "=== .gitignore Coverage ===" | tee "$REPORT"
+          echo "" | tee -a "$REPORT"
+
+          for pattern in ".env" "node_modules" ".DS_Store" "*.log"; do
+            if grep -q "$pattern" .gitignore 2>/dev/null; then
+              echo "PASS: '${pattern}' is in .gitignore" | tee -a "$REPORT"
+            else
+              echo "WARN: '${pattern}' is NOT in .gitignore" | tee -a "$REPORT"
+            fi
+          done
+
+          echo "" | tee -a "$REPORT"
+          echo "=== Tracked Sensitive Files ===" | tee -a "$REPORT"
+          SENSITIVE_FOUND=0
+          for f in ".env" ".env.local" ".env.production" "credentials.json"; do
+            TRACKED=$(git ls-files "$f" 2>/dev/null || true)
+            if [ -n "$TRACKED" ]; then
+              echo "CRITICAL: Sensitive file tracked in git: ${TRACKED}" | tee -a "$REPORT"
+              SENSITIVE_FOUND=$((SENSITIVE_FOUND + 1))
+            fi
+          done
+          if [ "$SENSITIVE_FOUND" -eq 0 ]; then
+            echo "PASS: No sensitive files tracked" | tee -a "$REPORT"
+          fi
+        continue-on-error: true
+
+      - name: Upload static analysis reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: static-analysis-reports
+          path: |
+            /tmp/static-analysis-report.txt
+            /tmp/mixed-content-report.txt
+            /tmp/secrets-report.txt
+            /tmp/gitignore-report.txt
+          retention-days: 30

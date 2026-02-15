@@ -18,6 +18,7 @@ A React/TypeScript companion app exists at `SAHearn1/SAHearn1-UCA-WebPage`:
 - **Live URL:** `https://sa-hearn1-uca-web-page.vercel.app`
 - **Purpose:** Full portal with auth, dashboard, file vault, caseload mgmt, compliance, agent orchestrator
 - **Relationship:** This static site (UCA-WebPage) is the public-facing marketing/enrollment site. The companion app is the authenticated operational portal.
+- **Status:** Firebase config uses placeholder values — needs real credentials for production auth.
 
 ---
 
@@ -25,24 +26,33 @@ A React/TypeScript companion app exists at `SAHearn1/SAHearn1-UCA-WebPage`:
 
 ```
 UCA-WebPage/
-├── index.html          # Single-file static site (HTML + inline CSS + inline JS)
-├── vercel.json         # Security headers (X-Content-Type, X-Frame-Options, XSS)
-├── .vercelignore       # Excludes .git, node_modules, README.md, *.log, .DS_Store
-├── README.md           # Deploy instructions
-└── urban-christian-academy---rootwork-framework.zip  # Original source archive (SHOULD BE REMOVED)
+├── index.html          # Single-page static site (HTML + inline JS)
+├── styles.css          # External stylesheet (extracted from inline)
+├── vercel.json         # Security headers, caching rules
+├── favicon.svg         # Custom UCA favicon (gold circle + "UCA" text)
+├── sitemap.xml         # SEO sitemap
+├── robots.txt          # Crawler directives
+├── .gitignore          # *.zip, node_modules, .env, .DS_Store, logs
+├── .github/workflows/
+│   ├── security.yml    # 12h cron security scanning (OWASP ZAP, SSL, headers)
+│   └── html-check.yml  # Push: Nu HTML checker, Lighthouse CI, link check
+├── CLAUDE.md           # This file — project docs & task tracking
+└── README.md           # Deployment instructions
 ```
 
 ### Tech Stack
 - **Pure HTML/CSS/JS** — no framework, no build, no dependencies
 - **Fonts:** Playfair Display (headings), DM Sans (body), Cormorant Garamond (editorial)
 - **Colors:** Forest green (#1B3A20), Gold (#C6973F), Cream (#FAF6F0), Bark/Soil browns
-- **JS:** IntersectionObserver scroll reveals, nav scroll effect, smooth anchor scrolling
-- **Mobile:** Responsive at 900px breakpoint
+- **JS:** IntersectionObserver scroll reveals, nav scroll effect, smooth anchor scrolling, mobile nav toggle
+- **Mobile:** Responsive at 900px breakpoint with hamburger menu
+- **Form:** FormSubmit.co (AJAX submission to info@rootworkframework.com)
 
 ### Deployment
 - Push to `main` → Vercel auto-deploys
 - No build command needed (static HTML)
 - Security headers configured in `vercel.json`
+- Two GitHub Actions workflows run on push
 
 ---
 
@@ -82,250 +92,100 @@ UCA-WebPage/
 
 | # | Section | ID | Content |
 |---|---------|-----|---------|
-| 1 | Navigation | `#nav` | Fixed top bar, brand, links, mobile hamburger |
-| 2 | Announcement | — | Summer Camp 2026 opens March 1 |
-| 3 | Hero | — | "From Garden to Growth", stats bar |
+| 1 | Navigation | `#nav` | Fixed top bar, brand, links, Portal link, mobile hamburger |
+| 2 | Announcement | — | Summer Camp 2026 countdown (opens March 1) |
+| 3 | Hero | `#main-content` | "From Garden to Growth", stats bar |
 | 4 | About / Framework | `#about` | 4 pillars + animated cycle ring |
-| 5 | Programs | `#programs` | 6 program cards |
-| 6 | Summer Camp | `#summer` | Feature section, pricing, capacity |
-| 7 | Scholarships | `#scholarships` | 3 GA scholarship pathways |
-| 8 | Services | `#services` | 6 support services list |
-| 9 | Trust | `#trust` | 6 credential/compliance cards |
-| 10 | CTA / Enroll | `#enroll` | Contact info, email/phone |
-| 11 | Footer | — | Brand, copyright |
+| 5 | Video | `#vision` | "The Vision" — video placeholder (coming soon) |
+| 6 | Programs | `#programs` | 6 program cards + portal callout |
+| 7 | Summer Camp | `#summer` | Feature section, pricing, capacity, countdown |
+| 8 | Scholarships | `#scholarships` | 3 GA scholarship pathways with external links |
+| 9 | Services | `#services` | 6 support services list |
+| 10 | Testimonials | `#testimonials` | 3 testimonial cards (parent, educator, parent) |
+| 11 | Trust | `#trust` | 6 credential/compliance cards |
+| 12 | Gallery | `#gallery` | 5 Unsplash images with lazy loading |
+| 13 | CTA / Enroll | `#enroll` | UCA contact info + enrollment inquiry form (FormSubmit.co) |
+| 14 | Footer | — | Brand, copyright |
 
 ---
 
-## Known Issues & Bugs
+## Current Status — Phases 1–6 Complete
 
-### Critical
-1. **Mobile nav hamburger does not work** — `<button class="nav-toggle">` exists but has NO click handler in JS. On mobile (<900px), nav links are hidden and unreachable.
-2. **ZIP file committed to repo** — `urban-christian-academy---rootwork-framework.zip` (103KB) is tracked in git. Should be in `.gitignore` or removed.
+All foundational work is done. The site is production-ready and deployed.
 
-### Functional
-3. **No form or enrollment flow** — "Enroll Now" and "Begin Your Journey" buttons link to `#enroll` which is just a contact section with email/phone. No intake form exists.
-4. **No link to companion portal** — The React app (SAHearn1-UCA-WebPage) has auth/dashboard but this site doesn't link to it.
-5. **"Explore the Framework" button** — links to `#about` but could deep-link to the companion app's framework pedagogy section.
-6. **All anchor links scroll but `#` brand link** — nav brand `href="#"` causes page jump to top instead of smooth scroll.
+### What's been completed
 
-### Accessibility
-7. **No skip-to-content link** — screen readers must tab through entire nav.
-8. **No `aria-expanded` on hamburger** — toggle button has no state for assistive technology.
-9. **Color contrast** — Some light text on green backgrounds may not meet WCAG AA (e.g., `rgba(255,255,255,0.6)` on `#1B3A20`).
-10. **No alt text on visual elements** — SVG botanical art and cycle ring have no descriptions.
-11. **No `lang` subtags** — Document is `lang="en"` which is fine, but no region specified.
+| Phase | Summary |
+|-------|---------|
+| **1 — Critical Fixes** | Mobile nav toggle with ARIA, meta description + OG/Twitter tags, favicon (SVG), .gitignore, ZIP removed |
+| **2 — Functional** | Enrollment form (FormSubmit.co with validation), Portal link in nav + programs callout, Summer Camp section with countdown, scholarship external links, fg2g-rwfw.com link |
+| **3 — Accessibility** | Skip-to-content link, WCAG AA color contrast, ARIA landmarks/labels on nav + cycle ring + footer, `:focus-visible` styles with gold accent |
+| **4 — Performance/SEO** | CSS extracted to `styles.css`, JSON-LD (EducationalOrganization + Event), sitemap.xml + robots.txt, Playfair Display 700 preloaded, `body::before` z-index fixed to 1 |
+| **5 — Content** | Hero + about images, 5-image photo gallery (Unsplash, lazy loaded), 3 testimonial cards, video placeholder, contact info updated to UCA org branding |
+| **6 — Infrastructure** | Security headers (CSP, HSTS, X-Frame-Options, etc.), Vercel Analytics script, 2 GitHub Actions (security scan 12h cron + HTML/Lighthouse/link check), .gitignore |
 
-### SEO & Meta
-12. **No meta description** — `<meta name="description">` is missing.
-13. **No Open Graph / Twitter Card tags** — No social preview when shared.
-14. **No favicon** — Browser shows default icon.
-15. **No structured data** — No JSON-LD for educational organization schema.
-16. **No sitemap.xml or robots.txt** — Not critical for single page but good practice.
-
-### Performance
-17. **All CSS is inline** — 1042 lines of CSS in `<style>`. Works but makes caching impossible; external stylesheet would be better.
-18. **Google Fonts blocking render** — `font-display: swap` is set via Google's URL but three font families load synchronously on first paint.
-19. **SVG noise texture on `body::before`** — Full-viewport fixed overlay with `z-index: 9999` sits above everything; potential paint performance issue.
+### Security posture
+- X-Content-Type-Options: nosniff
+- X-Frame-Options: DENY
+- X-XSS-Protection: 1; mode=block
+- Referrer-Policy: strict-origin-when-cross-origin
+- Permissions-Policy: camera=(), microphone=(), geolocation=()
+- Content-Security-Policy: strict (self + fonts.googleapis.com + formsubmit.co)
+- Strict-Transport-Security: 31536000 (1 year)
+- OWASP ZAP baseline scan every 12 hours
 
 ---
 
-## Task List — Operability
+## Remaining Tasks
 
-### Phase 1: Critical Fixes (Must-Do)
+### Immediate — Actionable Now
 
-- [ ] **T1.1 — Fix mobile navigation**
-  - Add JS click handler for `.nav-toggle` to toggle `.nav-links` visibility
-  - Add `aria-expanded` attribute toggling on the button
-  - Add CSS for `.nav-links.open` state (slide-down or overlay menu)
-  - Ensure clicking a nav link closes the menu
-  - Test at 320px, 375px, 768px, 900px breakpoints
+- [ ] **T-1 — Embed "The Vision" video**
+  - Replace the placeholder in `#vision` section with a real YouTube/Vimeo embed
+  - Use `loading="lazy"` on the iframe
+  - Requires: actual video URL
 
-- [ ] **T1.2 — Remove ZIP file from repo**
-  - Delete `urban-christian-academy---rootwork-framework.zip` from tracked files
-  - Add `*.zip` to `.gitignore`
-  - Commit the removal
+- [ ] **T-2 — Verify FormSubmit email**
+  - FormSubmit.co endpoint changed to `info@rootworkframework.com`
+  - First form submission triggers a verification email — must be confirmed before forwarding works
 
-- [ ] **T1.3 — Add meta description and SEO tags**
-  - Add `<meta name="description" content="...">` (150-160 chars)
-  - Add Open Graph tags: `og:title`, `og:description`, `og:image`, `og:url`, `og:type`
-  - Add Twitter Card tags: `twitter:card`, `twitter:title`, `twitter:description`
-  - Add canonical URL: `<link rel="canonical" href="https://uca-web-page.vercel.app">`
+- [ ] **T-3 — Configure custom domain**
+  - Site is at `uca-web-page.vercel.app` — needs a real domain
+  - Configure in Vercel → Settings → Domains, set DNS records
+  - After setup: update canonical URL and OG tags in `index.html`
 
-- [ ] **T1.4 — Add favicon**
-  - Create or generate a UCA favicon (gold circle with "UCA" text, matching `.nav-brand-icon`)
-  - Add `<link rel="icon">` in multiple sizes (16x16, 32x32, apple-touch-icon)
-  - Place favicon files in repo root or `/assets`
+### Companion Portal — Requires UI Work
 
-### Phase 2: Functional Improvements
+- [ ] **T-4 — Fix Firebase config in companion app**
+  - `SAHearn1-UCA-WebPage` uses placeholder `messagingSenderId` and `appId`
+  - Auth will not work until real Firebase project credentials are set
+  - Requires: Firebase console → Project settings → copy config
 
-- [ ] **T2.1 — Build enrollment inquiry form**
-  - Replace the `#enroll` CTA section with a functional contact/inquiry form
-  - Fields: Parent/Guardian Name, Email, Phone, Student Grade Level, Program Interest (dropdown), Message
-  - Options for form backend: Formspree, Netlify Forms, Google Forms embed, or a Vercel serverless function
-  - Add form validation (required fields, email format)
-  - Add success/error state feedback
+- [ ] **T-5 — Set companion app environment variables**
+  - Needs `.env.local` with `API_KEY` and `GEMINI_API_KEY`
+  - For Vercel deployment: set these in project Settings → Environment Variables
 
-- [ ] **T2.2 — Link to companion portal**
-  - Add a "Parent/Staff Portal" link in the nav
-  - Link to `https://sa-hearn1-uca-web-page.vercel.app` (or custom domain when ready)
-  - Consider a card or callout in the programs section pointing to the portal
+### Phase 7 — Future Enhancements
 
-- [ ] **T2.3 — Add Summer Camp registration flow**
-  - The announcement banner and summer section both reference registration opening March 1
-  - Build or link to a registration form (could use the companion app's RegistrationWizard)
-  - Add a countdown timer to March 1 if before that date, or "Now Open" badge after
-
-- [ ] **T2.4 — Add scholarship application links**
-  - Each scholarship card should link to the actual GA application portals:
-    - GSNS: Georgia DOE Special Needs Scholarship application
-    - Promise Scholarship: GA ESA portal
-    - GOAL: SSO partner organization
-  - Or link to a UCA-hosted page with step-by-step application instructions
-
-- [ ] **T2.5 — External link to fg2g-rwfw.com**
-  - The CTA section references `fg2g-rwfw.com` — verify this domain is active and correct
-  - Ensure the link opens in a new tab with `target="_blank" rel="noopener noreferrer"`
-
-### Phase 3: Accessibility & Compliance
-
-- [ ] **T3.1 — Add skip-to-content link**
-  - Add `<a href="#main-content" class="skip-link">Skip to content</a>` as first child of `<body>`
-  - Style it as visually hidden until focused
-  - Add `id="main-content"` to the hero or first content section
-
-- [ ] **T3.2 — Fix color contrast**
-  - Audit all text/background combinations with a WCAG contrast checker
-  - Target: AA compliance (4.5:1 for normal text, 3:1 for large text)
-  - Key areas to check: hero stat labels, footer text, section intros on dark backgrounds, announcement banner
-
-- [ ] **T3.3 — Add ARIA landmarks and labels**
-  - Add `role="banner"` to nav, `role="main"` to content area, `role="contentinfo"` to footer
-  - Add `aria-label` to the cycle ring visual ("RootWork Framework cycle diagram")
-  - Add `aria-label` to the nav toggle ("Toggle navigation menu")
-  - Ensure all interactive elements are keyboard-accessible
-
-- [ ] **T3.4 — Add focus styles**
-  - Ensure all links, buttons, and interactive elements have visible focus indicators
-  - Use `:focus-visible` for keyboard-only focus styles
-  - Match focus ring to gold accent color for brand consistency
-
-### Phase 4: Performance & SEO
-
-- [ ] **T4.1 — Extract CSS to external stylesheet**
-  - Move all CSS from inline `<style>` to `styles.css`
-  - Add `<link rel="stylesheet" href="styles.css">` to `<head>`
-  - Benefits: browser caching, cleaner HTML, easier maintenance
-  - Update `.vercelignore` if needed
-
-- [ ] **T4.2 — Add structured data (JSON-LD)**
-  - Add `EducationalOrganization` schema with:
-    - name, description, url, address, telephone, email, founder
-  - Add `Event` schema for Summer Camp 2026
-  - Add `Offer` schemas for scholarship amounts
-
-- [ ] **T4.3 — Add sitemap.xml and robots.txt**
-  - Create `sitemap.xml` with the single page URL
-  - Create `robots.txt` allowing all crawlers
-  - Reference sitemap in robots.txt
-
-- [ ] **T4.4 — Optimize font loading**
-  - Add `<link rel="preload">` for the most critical font (Playfair Display 700)
-  - Consider reducing to 2 font families if Cormorant Garamond is not essential
-  - Add `font-display: swap` fallback in CSS for system font stack
-
-- [ ] **T4.5 — Fix body::before noise overlay**
-  - The SVG noise texture is `z-index: 9999` which overlays everything
-  - It has `pointer-events: none` so it doesn't block clicks, but:
-  - It creates a full-viewport compositor layer — test if removing it improves paint performance
-  - If keeping it, reduce z-index to 1 or use `will-change: transform` for GPU compositing
-
-### Phase 5: Content & Media
-
-- [ ] **T5.1 — Add real images**
-  - The site is 100% CSS/SVG/emoji with zero photographs
-  - Add hero image (garden, students, campus)
-  - Add images to program cards or about section
-  - Use WebP format with `<picture>` fallback for JPEG
-  - Add proper `alt` text to all images
-  - Consider lazy loading with `loading="lazy"`
-
-- [ ] **T5.2 — Add a photo gallery section**
-  - The companion app (SAHearn1-UCA-WebPage) has a `PhotoGallery.tsx` with 4 garden-themed images
-  - Replicate or link to it from this site
-  - Use CSS grid with lightbox functionality
-
-- [ ] **T5.3 — Add testimonials or quotes**
-  - Parent testimonials, student stories, or faculty quotes
-  - Adds social proof and humanizes the page
-
-- [ ] **T5.4 — Add video embed**
-  - "The Vision" content referenced in the companion app
-  - Could be embedded YouTube/Vimeo player in the hero or a dedicated section
-  - Use `loading="lazy"` on iframe
-
-- [x] **T5.5 — Update contact information**
-  - Email updated to: `info@rootworkframework.com`
-  - Phone: `(301) 219-2728`
-  - Address: `4560 ACL Boulevard, Savannah, Georgia 31405`
-  - Personal references removed; site now promotes UCA as organization
-
-### Phase 6: Infrastructure & DevOps
-
-- [ ] **T6.1 — Add custom domain**
-  - Configure a custom domain in Vercel (e.g., `rootworkframework.org` or `uca.rootworkframework.org`)
-  - Set up DNS records as instructed by Vercel
-  - Update canonical URL and OG tags to match
-
-- [ ] **T6.2 — Set up Vercel Analytics**
-  - Enable Vercel Web Analytics for traffic tracking
-  - Or integrate a lightweight analytics solution (Plausible, Umami, etc.)
-
-- [ ] **T6.3 — Add HTTPS redirect**
-  - Vercel handles this by default, but verify with `curl -I http://...` that HTTP redirects to HTTPS
-
-- [ ] **T6.4 — Configure Vercel preview deployments**
-  - Currently the preview URL returned 401 (Unauthorized)
-  - Check Vercel project settings → General → "Deployment Protection"
-  - Either disable protection for previews or configure authorized access
-
-- [ ] **T6.5 — Set up CI checks**
-  - Add a GitHub Action for:
-    - HTML validation (html-validate or Nu HTML checker)
-    - Lighthouse CI audit (performance, accessibility, SEO scores)
-    - Link checker (broken links)
-
-- [ ] **T6.6 — Create a .gitignore**
-  - There is no `.gitignore` in this repo (only `.vercelignore`)
-  - Add one with: `*.zip`, `node_modules/`, `.DS_Store`, `*.log`, `.env`
-
-### Phase 7: Future Enhancements
-
-- [ ] **T7.1 — Add dark mode toggle**
-  - The design system already has dark tokens (forest, soil)
+- [ ] **T7.1 — Dark mode toggle**
   - Add `prefers-color-scheme` media query support
   - Optional: manual toggle in nav
 
-- [ ] **T7.2 — Add multi-language support**
-  - If the school serves multilingual families, consider i18n
-  - Start with English/Spanish
+- [ ] **T7.2 — Multi-language support**
+  - English/Spanish if the school serves multilingual families
 
 - [ ] **T7.3 — Convert to Next.js or Astro**
-  - If the site grows beyond a single page, consider a static site generator
-  - Astro is ideal for content-heavy static sites with optional JS islands
-  - This would enable multi-page routing, component reuse, and build-time optimization
+  - Only if the site grows beyond a single page
 
-- [ ] **T7.4 — Integrate with the companion portal**
-  - Shared auth: allow users to sign in from this site and redirect to the portal dashboard
-  - Embed portal components (enrollment wizard) as iframes or micro-frontends
-  - Unified navigation between the two sites
+- [ ] **T7.4 — Deeper portal integration**
+  - Shared auth between marketing site and portal
+  - Embedded enrollment wizard or unified navigation
 
-- [ ] **T7.5 — Add a blog or news section**
-  - School news, program updates, garden progress, community events
-  - Could use a headless CMS (Notion, Sanity, Contentful) for content management
+- [ ] **T7.5 — Blog or news section**
+  - Headless CMS (Notion, Sanity, Contentful) for content management
 
-- [ ] **T7.6 — Add print stylesheet**
-  - For parents who want to print program info, scholarship details, or the full page
-  - Hide nav, footer, animations; optimize layout for A4/Letter
+- [ ] **T7.6 — Print stylesheet**
+  - Hide nav, footer, animations; optimize for A4/Letter
 
 ---
 
@@ -341,7 +201,7 @@ python -m http.server 8000
 ```
 
 ### Making Changes
-1. Edit `index.html` directly
+1. Edit `index.html` and/or `styles.css`
 2. Test locally in browser (check both desktop and mobile viewport)
 3. Commit and push to `main` — Vercel auto-deploys
 

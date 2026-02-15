@@ -4,7 +4,6 @@
 
 - **Organization:** Urban Christian Academy (UCA) x Community Exceptional Children's Services (CECS)
 - **Project:** RootWork Framework — "From Garden to Growth"
-- **Owner:** Dr. Shawn A. Hearn, Ed.D., J.D. — Founder & Executive Director
 - **GitHub:** `SAHearn1/UCA-WebPage`
 - **Live URL:** `https://uca-web-page.vercel.app`
 - **Hosting:** Vercel (static deployment, no build step)
@@ -264,11 +263,11 @@ UCA-WebPage/
   - Could be embedded YouTube/Vimeo player in the hero or a dedicated section
   - Use `loading="lazy"` on iframe
 
-- [ ] **T5.5 — Update contact information**
-  - Verify email: `shawn.hearn@rootworkframework.org`
-  - Verify phone: `(301) 219-2728`
-  - Verify address: `4560 ACL Boulevard, Savannah, Georgia 31405`
-  - The companion app shows different contact info (Little Rock, AR / 501 area code) — reconcile which is current
+- [x] **T5.5 — Update contact information**
+  - Email updated to: `info@rootworkframework.com`
+  - Phone: `(301) 219-2728`
+  - Address: `4560 ACL Boulevard, Savannah, Georgia 31405`
+  - Personal references removed; site now promotes UCA as organization
 
 ### Phase 6: Infrastructure & DevOps
 
@@ -365,8 +364,8 @@ python -m http.server 8000
 
 | Field | Value |
 |-------|-------|
-| **Founder** | Dr. Shawn A. Hearn, Ed.D., J.D. |
-| **Email** | shawn.hearn@rootworkframework.org |
+| **Organization** | Urban Christian Academy (UCA) |
+| **Email** | info@rootworkframework.com |
 | **Phone** | (301) 219-2728 |
 | **Address** | 4560 ACL Boulevard, Savannah, GA 31405 |
 | **GitHub** | SAHearn1 |

@@ -14,11 +14,22 @@
 ## Related Repository
 
 A React/TypeScript companion app exists at `SAHearn1/SAHearn1-UCA-WebPage`:
-- **Stack:** React 19 + Vite + TypeScript + Firebase + Tailwind + Google Gemini
+- **Stack:** React 19 + Vite + TypeScript + Firebase 12 + Lucide React + Google Gemini
 - **Live URL:** `https://sa-hearn1-uca-web-page.vercel.app`
-- **Purpose:** Full portal with auth, dashboard, file vault, caseload mgmt, compliance, agent orchestrator
+- **Purpose:** Full portal with auth, enrollment wizard, parent dashboard, Stripe payments, agent orchestrator
 - **Relationship:** This static site (UCA-WebPage) is the public-facing marketing/enrollment site. The companion app is the authenticated operational portal.
-- **Status:** Firebase config uses placeholder values — needs real credentials for production auth.
+- **Firebase project:** `urban-christian-academy-20a7f` (real project — no longer placeholder)
+- **Status:** Fully deployed. All env vars set in Vercel. Firebase rules live. Both parent and staff portals operational.
+
+### Companion App Features (as of Feb 2026)
+- Firebase Auth (email/password + Google sign-in) with role-based routing
+- Dual-flow enrollment wizard: Parent (6-step) + Staff/Clinical (3-step)
+- Parent dashboard: enrollment status, documents, payments, communication
+- Staff dashboard: enrollment queue, approve/reject/waitlist, student roster, caseload management
+- Firestore security rules deployed with staff/admin access controls
+- Stripe payment integration (live keys)
+- Audit logging on all enrollment state changes
+- 15 env vars configured in Vercel for production
 
 ---
 
@@ -109,9 +120,9 @@ UCA-WebPage/
 
 ---
 
-## Current Status — Phases 1–6 Complete
+## Current Status — Phases 1–6 Complete (Updated Feb 2026)
 
-All foundational work is done. The site is production-ready and deployed.
+All foundational work is done. The static site is production-ready, deployed, and live at `https://uca-web-page.vercel.app`.
 
 ### What's been completed
 
@@ -123,6 +134,7 @@ All foundational work is done. The site is production-ready and deployed.
 | **4 — Performance/SEO** | CSS extracted to `styles.css`, JSON-LD (EducationalOrganization + Event), sitemap.xml + robots.txt, Playfair Display 700 preloaded, `body::before` z-index fixed to 1 |
 | **5 — Content** | Hero + about images, 5-image photo gallery (Unsplash, lazy loaded), 3 testimonial cards, video placeholder, contact info updated to UCA org branding |
 | **6 — Infrastructure** | Security headers (CSP, HSTS, X-Frame-Options, etc.), Vercel Analytics script, 2 GitHub Actions (security scan 12h cron + HTML/Lighthouse/link check), .gitignore |
+| **Post-Phase** | Nav brand logo fix (scrolls to hero), video placeholder improved with description |
 
 ### Security posture
 - X-Content-Type-Options: nosniff
@@ -138,32 +150,36 @@ All foundational work is done. The site is production-ready and deployed.
 
 ## Remaining Tasks
 
-### Immediate — Actionable Now
+### Static Site — Actionable Now
 
 - [ ] **T-1 — Embed "The Vision" video**
   - Replace the placeholder in `#vision` section with a real YouTube/Vimeo embed
   - Use `loading="lazy"` on the iframe
-  - Requires: actual video URL
+  - Requires: actual video URL from Dr. Hearn
 
 - [ ] **T-2 — Verify FormSubmit email**
   - FormSubmit.co endpoint changed to `info@rootworkframework.com`
   - First form submission triggers a verification email — must be confirmed before forwarding works
+  - Action: submit a test form, then check inbox for verification link
 
 - [ ] **T-3 — Configure custom domain**
   - Site is at `uca-web-page.vercel.app` — needs a real domain
   - Configure in Vercel → Settings → Domains, set DNS records
   - After setup: update canonical URL and OG tags in `index.html`
 
-### Companion Portal — Requires UI Work
+### Companion Portal — FULLY DEPLOYED (Feb 2026)
 
-- [ ] **T-4 — Fix Firebase config in companion app**
-  - `SAHearn1-UCA-WebPage` uses placeholder `messagingSenderId` and `appId`
-  - Auth will not work until real Firebase project credentials are set
-  - Requires: Firebase console → Project settings → copy config
-
-- [ ] **T-5 — Set companion app environment variables**
-  - Needs `.env.local` with `API_KEY` and `GEMINI_API_KEY`
-  - For Vercel deployment: set these in project Settings → Environment Variables
+- [x] **T-4 — Firebase config** — All config values retrieved from Firebase API, `.env.local` complete
+- [x] **T-5 — Environment variables** — All 15 vars set in both `.env.local` and Vercel production
+- [x] **T-6 — vercel.json** — Security headers (CSP, HSTS, X-Frame-Options) + SPA rewrite rules
+- [x] **T-7 — CLAUDE.md** — Full project docs with architecture, roles, build phases, dev workflow
+- [x] **Auth & Role Infrastructure** — AuthModal with role selection, Firestore rules, role-based routing
+- [x] **Staff Portal** — Dashboard, enrollment queue, detail view, student roster, caseload management
+- [x] **Parent Portal** — Multi-student enrollment, guardian address/relationship, "New Enrollment" button
+- [x] **Staff Onboarding** — Dual-flow wizard with StepProfessionalInfo + StepStaffReview, `staffOnboarding` collection
+- [x] **Audit Logging** — logActivity wired into all enrollment + staff state changes
+- [x] **Firestore Rules** — Deployed to production with staff/admin access + staffOnboarding collection
+- [x] **Build Verified** — TypeScript passes, Vite production build clean
 
 ### Phase 7 — Future Enhancements
 

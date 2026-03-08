@@ -1,0 +1,17 @@
+name: Agent Governance Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ['AGENTS.md', 'repo.intelligence.yml', 'docs/**', '.github/**']
+
+jobs:
+  validate-governance:
+    runs-on: ubuntu-latest
+  validate-governance:
+    runs-on: ubuntu-latest
+    steps:
+    steps:
+      - uses: actions/checkout@v4
+      - run: [ -f AGENTS.md ] && echo "present" || (echo "missing" && exit 1)
+      - run: python3 -c "import yaml, sys; yaml.safe_load(open('repo.intelligence.yml'))" && echo "repo.intelligence.yml is valid YAML"

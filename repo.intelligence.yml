@@ -1,0 +1,43 @@
+# repo.intelligence.yml — UCA-WebPage
+# Anti-hallucination enforced: unverified fields marked TODO
+# Last updated: 2026-03-08 | Phase C governance install
+
+repo:
+  name: UCA-WebPage
+  owner: SAHearn1
+  tier: 2
+  classification: active-support
+  description: United Community Academy (UCA) static web page
+
+stack:
+  type: static-html
+  framework: none
+  language: HTML + CSS + JavaScript
+
+auth:
+  provider: none
+  notes: Public static site
+
+database:
+  primary: none
+
+deployment:
+  platform: "TODO — requires human verification"
+  branch_strategy:
+    production: main
+    governance_install: agent-operating-system-install
+
+ci:
+  platform: GitHub Actions
+  governance_workflow: .github/workflows/agent-governance.yml
+
+entrypoints:
+  app: index.html
+
+related_repos:
+  - SAHearn1/SAHearn1-UCA-WebPage
+  - SAHearn1/rwfw-agent-governance
+
+governance:
+  hub: SAHearn1/rwfw-agent-governance
+  install_branch: agent-operating-system-install

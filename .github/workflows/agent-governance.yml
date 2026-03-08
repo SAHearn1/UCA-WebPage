@@ -8,7 +8,9 @@ on:
 jobs:
   validate-governance:
     runs-on: ubuntu-latest
-    if: contains(github.head_ref, 'agent-operating-system-install') || contains(github.head_ref, 'governance')
+  validate-governance:
+    runs-on: ubuntu-latest
+    steps:
     steps:
       - uses: actions/checkout@v4
       - run: [ -f AGENTS.md ] && echo "present" || (echo "missing" && exit 1)
